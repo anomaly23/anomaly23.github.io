@@ -76,6 +76,12 @@
       cursor:pointer;
     }
     #veil.hidden{opacity:0;transform:scale(1.03);pointer-events:none}
+    #veil .veil-brand{
+      position:absolute;
+      top:20px;left:20px;
+      font-size:10px;letter-spacing:.22em;opacity:.6;
+      font-weight:400;color:rgba(200,255,220,.9);
+    }
     #veil .card{
       width:min(340px,85vw);
       border:1px solid rgba(100,255,160,.1);
@@ -203,6 +209,7 @@
 
   <!-- VEIL: Close your eyes -->
   <div id="veil">
+    <div class="veil-brand">ANOMALY23</div>
     <div class="card">
       <svg class="eye" viewBox="0 0 48 48" fill="none">
         <path d="M4 24s7-14 20-14 20 14 20 14-7 14-20 14S4 24 4 24Z" 
@@ -210,7 +217,6 @@
         <circle cx="24" cy="24" r="6" stroke="rgba(120,255,180,.75)" stroke-width="1.2"/>
         <circle cx="24" cy="24" r="2.5" fill="rgba(120,255,180,.55)"/>
       </svg>
-      <h1>ANOMALY23</h1>
       <button id="enterBtn">close your eyes</button>
     </div>
   </div>
