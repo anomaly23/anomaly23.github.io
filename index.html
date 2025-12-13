@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ANOMALY23</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    html,body{height:100%;background:#05060a;overflow:hidden;font-family:ui-sans-serif,system-ui,sans-serif}
+    
+    /* VEIL - the eye screen */
+    #veil{
+      position:fixed;inset:0;z-index:10;
+      display:grid;place-items:center;
+      background:radial-gradient(ellipse 1200px 800px at 50% 45%,rgba(10,14,18,.94),rgba(3,4,7,1));
+      color:rgba(220,255,220,.9);
+      transition:opacity .6s ease,transform .6s ease;
+      cursor:pointer;
+    }
+    #veil.hidden{opacity:0;transform:scale(1.02);pointer-events:none}
+    #veil .card{
+      width:min(420px,88vw);
+      border:1px solid rgba(120,255,170,.12);
+      background:rgba(6,8,12,.45);
+      box-shadow:0 0 0 1px rgba(90,255,140,.04) inset,0 40px 120px rgba(0,0,0,.55);
+      border-radius:16px;
+      padding:32px 28px;
+      backdrop-filter:blur(12px);
+      text-align:center;
+    }
+    #veil .eye{
+      width:48px;height:48px;margin:0 auto 16px;
+      opacity:.85;
+    }
+    #veil h1{
+      font-size:11px;letter-spacing:.22em;opacity:.75;margin-bottom:8px;
+      font-weight:400;
+    }
+    #veil .hint{
+      font-size:13px;letter-spacing:.08em;opacity:.55;
+      margin-bottom:24px;
+    }
+    #veil button{
+      width:100%;
+      border-radius:10px;
+      border:1px solid rgba(120,255,170,.18);
+      background:rgba(20,26,34,.5);
+      color:rgba(220,255,220,.88);
+      padding:14px 18px;
+      font-size:11px;
+      letter-spacing:.14em;
+      cursor:pointer;
+      transition:all .2s ease;
+    }
+    #veil button:hover{background:rgba(35,45,55,.6);border-color:rgba(120,255,170,.28)}
+    #veil button:active{transform:translateY(1px)}
+
+    /* Blink transition */
+    #blink{
+      position:fixed;inset:0;z-index:9;
+      background:#000;opacity:0;pointer-events:none;
+    }
+    #blink.run{animation:blink 700ms ease-in-out forwards}
+    @keyframes blink{
+      0%{opacity:0}
+      30%{opacity:1}
+      75%{opacity:1}
+      100%{opacity:0}
+    }
+
+    /* HUD overlay */
+    #hud{
+      position:fixed;inset:0;pointer-events:none;
+      color:rgba(180,255,200,.7);
+      mix-blend-mode:screen;
+      opacity:0;
+      transition:opacity 1.2s ease;
+    }
+    #hud.visible{opacity:1}
+    #brand{
+      position:absolute;top:20px;left:20px;
+      font-size:11px;letter-spacing:.2em;opacity:.8;
+    }
+    #statusR{
+      position:absolute;bottom:20px;right:20px;
+      font-size:9px;letter-spacing:.1em;opacity:.5;
+      text-align:right;
+      font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+    }
+    #logPanel{
+      position:absolute;top:52px;left:20px;
+      width:min(380px,80vw);
+      font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+      font-size:9px;
+      line-height:1.6;
+      opacity:.45;
+      white-space:pre;
+      text-shadow:0 0 12px rgba(90,255,140,.12);
+    }
+
+    canvas{display:block}
+  </style>
+</head>
+<body>
+
+  <!-- VEIL: Close your eyes -->
+  <div id="veil">
+    <div class="card">
+      <svg class="eye" viewBox="0 0 48 48" fill="none">
+        <path d="M4 24s7-14 20-14 20 14 20 14-7 14-20 14S4 24 4 24Z" 
+              stroke="rgba(140,255,190,.8)" stroke-width="1.5"/>
+        <circle cx="24" cy="24" r="6" stroke="rgba(140,255,190,.8)" stroke-width="1.5"/>
+        <circle cx="24" cy="24" r="2.5" fill="rgba(140,255,190,.6)"/>
+      </svg>
+      <h1>ANOMALY23</h1>
+      <p class="hint">close your eyes</p>
+      <button id="enterBtn">ENTER ▸</button>
+    </div>
+  </div>
+
+  <div id="blink"></div>
+
+  <!-- HUD: Internal interface -->
+  <div id="hud">
+    <div id="brand">ANOMALY23</div>
+    <div id="logPanel"></div>
+    <div id="statusR">GENESIS • 3/23 • SEALED<br/>CONTACT: UNAVAILABLE</div>
+  </div>
+
+  <script type="module">
+    import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
+
+    // === DOM ===
+    const veil = document.getElementById("veil");
+    const blink = document.getElementById("blink");
+    const enterBtn = document.getElementById("enterBtn");
+    const hud = document.getElementById("hud");
+    const logPanel = document.getElementById("logPanel");
+
+    let opened = false;
+
+    // === HUD LOGS ===
+    const logs = [
+      "BOOT: OK",
+      "SENSORIUM: ARMED",
+      "SEAL: TRUE",
+      "CONSTELLATION: 3/23",
+      "CONTACT: UNAVAILABLE",
+      "CHANNEL: SILENT",
+      "INNER_LOOP: STABLE",
+      "MEMORY: WETLAND CACHE",
+      "ANOMALY: PULSE",
+      "RENDER: PENDING",
+      "REALITY: THIN",
+    ];
+
+    function stamp(){
+      const d = new Date();
+      return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}:${String(d.getSeconds()).padStart(2,"0")}`;
+    }
+
+    function pushLog(line){
+      const lines = logPanel.textContent.split("\n").filter(Boolean);
+      lines.push(`${stamp()}  ${line}`);
+      while(lines.length > 8) lines.shift();
+      logPanel.textContent = lines.join("\n");
+    }
+
+    // Slow log trickle
+    setInterval(()=>{
+      if(!opened) return;
+      pushLog(logs[Math.floor(Math.random()*logs.length)]);
+    }, 2800);
+
+    // === ENTER ===
+    enterBtn.addEventListener("click", (e)=>{
+      e.stopPropagation();
+      enter();
+    });
+    veil.addEventListener("click", enter);
+
+    function enter(){
+      if(opened) return;
+      opened = true;
+
+      blink.classList.remove("run");
+      void blink.offsetWidth;
+      blink.classList.add("run");
+
+      setTimeout(()=>{
+        veil.classList.add("hidden");
+        hud.classList.add("visible");
+      }, 200);
+
+      // Initial log burst
+      logPanel.textContent = "";
+      setTimeout(()=>pushLog("SEAL: BREAKING"), 300);
+      setTimeout(()=>pushLog("EYES: CLOSED"), 600);
+      setTimeout(()=>pushLog("FIELD: ONLINE"), 900);
+      setTimeout(()=>pushLog("CONSTELLATION: 3/23"), 1200);
+      setTimeout(()=>pushLog("CONTACT: UNAVAILABLE"), 1500);
+    }
+
+    // === THREE.JS SCENE ===
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, 0.1, 200);
+    camera.position.set(0, 0, 12);
+
+    const renderer = new THREE.WebGLRenderer({ antialias:true });
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    document.body.appendChild(renderer.domElement);
+
+    // Mouse
+    const mouse = new THREE.Vector2(0, 0);
+    addEventListener("pointermove", (e)=>{
+      mouse.x = (e.clientX/innerWidth)*2 - 1;
+      mouse.y = -((e.clientY/innerHeight)*2 - 1);
+    });
+
+    // === DARK MATTER FIELD (phosphenes shader) ===
+    const fieldGeo = new THREE.PlaneGeometry(2, 2);
+    const fieldMat = new THREE.ShaderMaterial({
+      uniforms:{
+        uTime:{ value:0 },
+        uRes:{ value:new THREE.Vector2(innerWidth, innerHeight) },
+        uMouse:{ value:new THREE.Vector2(0, 0) }
+      },
+      vertexShader:`
+        varying vec2 vUv;
+        void main(){
+          vUv = uv;
+          gl_Position = vec4(position, 1.0);
+        }
+      `,
+      fragmentShader:`
+        precision highp float;
+        varying vec2 vUv;
+        uniform float uTime;
+        uniform vec2 uRes;
+        uniform vec2 uMouse;
+
+        float hash(vec2 p){
+          p = fract(p*vec2(123.34, 345.45));
+          p += dot(p, p+34.345);
+          return fract(p.x*p.y);
+        }
+        float noise(vec2 p){
+          vec2 i = floor(p);
+          vec2 f = fract(p);
+          float a = hash(i);
+          float b = hash(i+vec2(1.,0.));
+          float c = hash(i+vec2(0.,1.));
+          float d = hash(i+vec2(1.,1.));
+          vec2 u = f*f*(3.-2.*f);
+          return mix(a,b,u.x)+(c-a)*u.y*(1.-u.x)+(d-b)*u.x*u.y;
+        }
+        float fbm(vec2 p){
+          float v = 0.;
+          float a = .55;
+          for(int i=0;i<5;i++){
+            v += a*noise(p);
+            p *= 2.;
+            a *= .5;
+          }
+          return v;
+        }
+
+        void main(){
+          vec2 uv = vUv;
+          vec2 p = (uv - .5) * vec2(uRes.x/uRes.y, 1.);
+          float t = uTime * .12;
+          p += uMouse * .1;
+
+          float n1 = fbm(p*2.2 + vec2(t, -t*.7));
+          float n2 = fbm(p*4. + vec2(-t*.8, t*1.1));
+          float ring = smoothstep(.6, .05, length(p)*(.85+.2*sin(uTime*.3)));
+          float pulse = .5 + .5*sin(uTime*1.1 + n2*6.283);
+          float glow = pow(n1,2.)*.85 + pow(n2,3.)*.6;
+          glow *= ring * (.75 + .35*pulse);
+
+          vec3 base = vec3(.02,.03,.05);
+          vec3 ink = vec3(.01,.06,.04);
+          vec3 col = mix(base, ink, glow);
+          col *= smoothstep(1.2, .2, length(p));
+
+          gl_FragColor = vec4(col, 1.);
+        }
+      `
+    });
+    const field = new THREE.Mesh(fieldGeo, fieldMat);
+    field.frustumCulled = false;
+    scene.add(field);
+
+    // === PARTICLES (fog + 3 active dots) ===
+    const fogCount = 2400;
+    const activeCount = 3;
+    const totalCount = fogCount + activeCount;
+
+    const positions = new Float32Array(totalCount * 3);
+    const sizes = new Float32Array(totalCount);
+
+    // Fog particles
+    for(let i=0; i<fogCount; i++){
+      positions[i*3+0] = (Math.random()*2-1) * 10;
+      positions[i*3+1] = (Math.random()*2-1) * 6;
+      positions[i*3+2] = (Math.random()*2-1) * 18;
+      sizes[i] = .6 + Math.random()*1.8;
+    }
+
+    // 3 active green dots
+    const activeDots = [
+      { x:-0.55, y:0.25, z:0.8, size:12 },
+      { x: 0.10, y:-0.15, z:0.2, size:15 },
+      { x: 0.62, y:0.18, z:0.6, size:11 }
+    ];
+
+    for(let i=0; i<activeCount; i++){
+      const idx = fogCount + i;
+      positions[idx*3+0] = activeDots[i].x;
+      positions[idx*3+1] = activeDots[i].y;
+      positions[idx*3+2] = activeDots[i].z;
+      sizes[idx] = activeDots[i].size;
+    }
+
+    const particleGeo = new THREE.BufferGeometry();
+    particleGeo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    particleGeo.setAttribute("aSize", new THREE.BufferAttribute(sizes, 1));
+
+    const particleMat = new THREE.ShaderMaterial({
+      transparent:true,
+      depthWrite:false,
+      blending:THREE.AdditiveBlending,
+      uniforms:{
+        uTime:{ value:0 },
+        uColor:{ value:new THREE.Color("#55ff88") }
+      },
+      vertexShader:`
+        uniform float uTime;
+        attribute float aSize;
+        varying float vSize;
+        void main(){
+          vSize = aSize;
+          vec4 mv = modelViewMatrix * vec4(position, 1.);
+          float pulse = .85 + .15*sin(uTime*2. + position.x*3. + position.y*4.);
+          gl_PointSize = aSize * pulse * (220. / -mv.z);
+          gl_Position = projectionMatrix * mv;
+        }
+      `,
+      fragmentShader:`
+        uniform vec3 uColor;
+        varying float vSize;
+        void main(){
+          vec2 uv = gl_PointCoord - .5;
+          float d = length(uv);
+          float core = smoothstep(.22, 0., d);
+          float halo = smoothstep(.48, .16, d);
+          float a = core*.95 + halo*.25;
+          float boost = smoothstep(3., 12., vSize);
+          vec3 col = mix(uColor*.35, uColor*1.25, boost);
+          gl_FragColor = vec4(col, a);
+        }
+      `
+    });
+
+    const particles = new THREE.Points(particleGeo, particleMat);
+    particles.position.z = -2;
+    scene.add(particles);
+
+    // === RESIZE ===
+    function resize(){
+      camera.aspect = innerWidth/innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+      renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+      fieldMat.uniforms.uRes.value.set(innerWidth, innerHeight);
+    }
+    addEventListener("resize", resize);
+
+    // === RENDER LOOP ===
+    let t0 = performance.now();
+    function tick(now){
+      const t = (now - t0) * .001;
+      fieldMat.uniforms.uTime.value = t;
+      particleMat.uniforms.uTime.value = t;
+      fieldMat.uniforms.uMouse.value.set(mouse.x, mouse.y);
+
+      particles.rotation.y = t * .03;
+      particles.rotation.x = Math.sin(t * .12) * .03;
+      camera.position.x = mouse.x * .35;
+      camera.position.y = mouse.y * .2;
+
+      renderer.render(scene, camera);
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  </script>
+</body>
+</html>
