@@ -252,38 +252,6 @@
   </div>
 
   <script>
-    // Beacon - stepping pulse animation (wraps existing static text)
-    const track = document.getElementById("beaconTrack");
-    const beaconText = track.textContent;
-    const visible = 15; // how many chars visible at once
-    const center = Math.floor(visible / 2);
-    
-    let pos = 0;
-    
-    function renderBeacon(){
-      let html = '';
-      for(let i = 0; i < visible; i++){
-        const charIndex = (pos + i) % beaconText.length;
-        const char = beaconText[charIndex];
-        const distFromCenter = Math.abs(i - center);
-        
-        let cls = 'char';
-        if(distFromCenter === 0) cls += ' center';
-        else if(distFromCenter === 1) cls += ' near';
-        
-        html += `<span class="${cls}">${char}</span>`;
-      }
-      track.innerHTML = html;
-    }
-    
-    function stepBeacon(){
-      pos = (pos + 1) % beaconText.length;
-      renderBeacon();
-    }
-    
-    renderBeacon();
-    setInterval(stepBeacon, 400); // step every 400ms - like heartbeat
-  </script>
 
   <div id="blink"></div>
 
@@ -633,6 +601,40 @@
       requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
+  </script>
+  
+  <script>
+    // Beacon - stepping pulse animation
+    const track = document.getElementById("beaconTrack");
+    const beaconText = track.textContent;
+    const visible = 15;
+    const center = Math.floor(visible / 2);
+    
+    let pos = 0;
+    
+    function renderBeacon(){
+      let html = '';
+      for(let i = 0; i < visible; i++){
+        const charIndex = (pos + i) % beaconText.length;
+        const char = beaconText[charIndex];
+        const distFromCenter = Math.abs(i - center);
+        
+        let cls = 'char';
+        if(distFromCenter === 0) cls += ' center';
+        else if(distFromCenter === 1) cls += ' near';
+        
+        html += `<span class="${cls}">${char}</span>`;
+      }
+      track.innerHTML = html;
+    }
+    
+    function stepBeacon(){
+      pos = (pos + 1) % beaconText.length;
+      renderBeacon();
+    }
+    
+    renderBeacon();
+    setInterval(stepBeacon, 500);
   </script>
 </body>
 </html>
