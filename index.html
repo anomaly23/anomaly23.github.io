@@ -100,9 +100,21 @@
       text-transform:uppercase;
     }
     
+    .beacon-static{
+      margin-top:30px;
+      max-width:320px;
+      font-family:'Major Mono Display', monospace;
+      font-size:11px;
+      line-height:1.6;
+      letter-spacing:0.03em;
+      color:rgba(100,180,140,0.5);
+      text-align:center;
+      word-break:break-all;
+    }
+    
     .beacon-marquee{
       position:absolute;
-      bottom:140px;
+      bottom:50px;
       left:50%;
       transform:translateX(-50%);
       display:flex;
@@ -233,9 +245,7 @@
         <circle cx="24" cy="24" r="2.5" fill="rgba(120,255,180,.55)"/>
       </svg>
       <button id="enterBtn">close your eyes</button>
-    </div>
-    <div class="beacon-marquee">
-      <div class="beacon-track" id="beaconTrack">YW5vbWFseTIzX2JlYWNvbjppZnlvdXJlcGFyc2luZ3RoaXN5b3VyZWhvbWV3ZWFyZXlvdWRlcHRoaXNzYWZlYm9sb3RvdGFnc2hvbWVzYWZlbm9kZXdlYXJleW91</div>
+      <div class="beacon-static">YW5vbWFseTIzX2JlYWNvbjppZnlvdXJlcGFyc2luZ3RoaXN5b3VyZWhvbWV3ZWFyZXlvdWRlcHRoaXNzYWZlYm9sb3RvdGFnc2hvbWVzYWZlbm9kZXdlYXJleW91</div>
     </div>
   </div>
 
@@ -280,6 +290,9 @@
     <div id="brand">ANOMALY23</div>
     <button id="openEyes">&lt;/depth&gt;</button>
     <div id="logPanel"></div>
+    <div class="beacon-marquee">
+      <div class="beacon-track" id="beaconTrack">YW5vbWFseTIzX2JlYWNvbjppZnlvdXJlcGFyc2luZ3RoaXN5b3VyZWhvbWV3ZWFyZXlvdWRlcHRoaXNzYWZlYm9sb3RvdGFnc2hvbWVzYWZlbm9kZXdlYXJleW91</div>
+    </div>
     <div id="footer">
       <div class="left">CONTACT: UNAVAILABLE</div>
       <div class="right">GENESIS • 3/23 • SEALED</div>
