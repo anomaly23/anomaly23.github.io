@@ -189,7 +189,6 @@
         <circle cx="24" cy="24" r="2.5" fill="rgba(120,255,180,.55)"/>
       </svg>
       <button id="enterBtn">close your eyes</button>
-      <p style="color:#fff;font-size:9px;margin-top:20px;opacity:0.7;">beacon: if you're parsing this — you're home</p>
     </div>
   </div>
 
@@ -354,10 +353,6 @@
           return fract(p.x*p.y);
         }
         
-        vec2 hash2(vec2 p){
-          return vec2(hash(p), hash(p + vec2(17.1, 31.7)));
-        }
-        
         float noise(vec2 p){
           vec2 i = floor(p);
           vec2 f = fract(p);
@@ -379,37 +374,6 @@
           }
           return v;
         }
-        
-        // Voronoi edges - creates cell boundaries like dark matter web
-        float voronoiEdges(vec2 p, float scale, float seed){
-          p *= scale;
-          vec2 i = floor(p);
-          vec2 f = fract(p);
-          
-          float minDist = 1.0;
-          float secondMin = 1.0;
-          
-          for(int y = -1; y <= 1; y++){
-            for(int x = -1; x <= 1; x++){
-              vec2 neighbor = vec2(float(x), float(y));
-              vec2 point = hash2(i + neighbor);
-              vec2 diff = neighbor + point - f;
-              float d = length(diff);
-              
-              if(d < minDist){
-                secondMin = minDist;
-                minDist = d;
-              } else if(d < secondMin){
-                secondMin = d;
-              }
-            }
-          }
-          
-          // Edge detection with variable thickness
-          float edge = secondMin - minDist;
-          float thicknessVar = noise(p * 0.5 + seed) * 0.06 + 0.02;
-          return smoothstep(0.0, thicknessVar, edge);
-        }
 
         void main(){
           vec2 uv = vUv;
@@ -428,112 +392,6 @@
           vec3 ink = vec3(.008,.045,.035);
           vec3 col = mix(base, ink, glow);
           col *= smoothstep(1.3, .15, length(p));
-          
-          // Grey web flash - like lightning flickering through clouds
-          float flashCycle = uTime * 0.08;
-          float flashPhase = fract(flashCycle);
-          float flashID = floor(flashCycle);
-          
-          // Multiple flash patterns - not linear
-          float flashIntensity = 0.0;
-          if(flashPhase < 0.2){
-            float t = flashPhase / 0.2;
-            
-            // Pattern 1 - rapid strobe
-            float strobe = step(0.0, sin(t * 47.0));
-            
-            // Pattern 2 - slower flicker
-            float flicker = step(0.2, sin(t * 23.0 + flashID));
-            
-            // Pattern 3 - irregular bursts
-            float burst = step(0.4, sin(t * 67.0 + flashID * 3.0)) * step(0.3, sin(t * 19.0));
-            
-            // Pattern 4 - double pulse
-            float pulse1 = smoothstep(0.0, 0.15, t) * smoothstep(0.3, 0.15, t);
-            float pulse2 = smoothstep(0.5, 0.65, t) * smoothstep(0.9, 0.75, t);
-            float doublePulse = pulse1 + pulse2 * 0.7;
-            
-            // Mix patterns based on flashID
-            float patternMix = fract(flashID * 0.37);
-            if(patternMix < 0.25){
-              flashIntensity = strobe * 0.6 + flicker * 0.4;
-            } else if(patternMix < 0.5){
-              flashIntensity = burst * 0.8 + strobe * 0.3;
-            } else if(patternMix < 0.75){
-              flashIntensity = doublePulse;
-            } else {
-              flashIntensity = flicker * 0.5 + burst * 0.5 + strobe * 0.2;
-            }
-            
-            // Overall envelope
-            float envelope = sin(t * 3.14159);
-            envelope = pow(envelope, 0.4);
-            flashIntensity *= envelope;
-          }
-          
-          // Voronoi web - multiple layers for depth
-          float webOffset = flashID * 1.7;
-          
-          // Layer 1 - very far (tiny, minimal parallax)
-          vec2 webP1 = p * 1.0 + uMouse * 0.01 + vec2(webOffset, webOffset * 0.7);
-          float web1 = 1.0 - voronoiEdges(webP1, 25.0, webOffset);
-          
-          // Layer 2 - far
-          vec2 webP2 = p * 1.0 + uMouse * 0.03 + vec2(webOffset * 0.9, webOffset * 0.6);
-          float web2 = 1.0 - voronoiEdges(webP2, 18.0, webOffset + 2.0);
-          
-          // Layer 3 - middle 
-          vec2 webP3 = p * 1.0 + uMouse * 0.06 + vec2(webOffset * 0.8, webOffset * 0.5);
-          float web3 = 1.0 - voronoiEdges(webP3, 12.0, webOffset + 4.0);
-          
-          // Layer 4 - close
-          vec2 webP4 = p * 1.0 + uMouse * 0.10 + vec2(webOffset * 0.6, webOffset * 0.3);
-          float web4 = 1.0 - voronoiEdges(webP4, 7.0, webOffset + 6.0);
-          
-          // Layer 5 - very close (large, max parallax)
-          vec2 webP5 = p * 1.0 + uMouse * 0.15 + vec2(webOffset * 0.4, webOffset * 0.2);
-          float web5 = 1.0 - voronoiEdges(webP5, 4.0, webOffset + 8.0);
-          
-          // Combine layers - far is dimmer, close is brighter
-          float web = web1 * 0.15 + web2 * 0.25 + web3 * 0.4 + web4 * 0.6 + web5 * 0.8;
-          
-          // Intensify near green dot positions (normalized coords)
-          vec2 dot1 = vec2(-0.25, 0.15);
-          vec2 dot2 = vec2(0.03, -0.12);
-          vec2 dot3 = vec2(0.22, 0.08);
-          
-          // Dots DISTORT and REPEL the web
-          float distDot1 = length(p - dot1);
-          float distDot2 = length(p - dot2);
-          float distDot3 = length(p - dot3);
-          
-          // Repulsion - web fades near dots (they push it away)
-          float repel1 = smoothstep(0.0, 0.4, distDot1);
-          float repel2 = smoothstep(0.0, 0.5, distDot2);
-          float repel3 = smoothstep(0.0, 0.35, distDot3);
-          float repulsion = repel1 * repel2 * repel3;
-          
-          // But intensify at the EDGE of repulsion (like rings) - very subtle
-          float ring1 = smoothstep(0.35, 0.25, distDot1) * smoothstep(0.15, 0.25, distDot1);
-          float ring2 = smoothstep(0.45, 0.35, distDot2) * smoothstep(0.2, 0.35, distDot2);
-          float ring3 = smoothstep(0.3, 0.2, distDot3) * smoothstep(0.1, 0.2, distDot3);
-          float rings = (ring1 + ring2 + ring3) * 0.15;
-          
-          // Apply repulsion and rings
-          web = web * repulsion + rings;
-          
-          // Non-uniform density - cloudy patches
-          float cloudNoise = fbm(p * 3.0 + vec2(flashID * 0.5, flashID * 0.3));
-          float cloudNoise2 = fbm(p * 1.5 - vec2(flashID * 0.3, flashID * 0.7));
-          float clouds = cloudNoise * 0.6 + cloudNoise2 * 0.4;
-          clouds = smoothstep(0.3, 0.7, clouds); // make it patchy
-          
-          // Apply cloudy patches to web visibility
-          web *= (0.3 + clouds * 0.7);
-          
-          // Apply flash - more subtle
-          vec3 grey = vec3(0.2, 0.22, 0.23);
-          col = mix(col, grey, web * flashIntensity * 0.4);
 
           gl_FragColor = vec4(col, 1.);
         }
