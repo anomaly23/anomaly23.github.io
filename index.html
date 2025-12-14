@@ -235,14 +235,14 @@
       <button id="enterBtn">close your eyes</button>
     </div>
     <div class="beacon-marquee">
-      <div class="beacon-track" id="beaconTrack"></div>
+      <div class="beacon-track" id="beaconTrack">YW5vbWFseTIzX2JlYWNvbjppZnlvdXJlcGFyc2luZ3RoaXN5b3VyZWhvbWV3ZWFyZXlvdWRlcHRoaXNzYWZlYm9sb3RvdGFnc2hvbWVzYWZlbm9kZXdlYXJleW91</div>
     </div>
   </div>
 
   <script>
-    // Beacon - stepping pulse animation
-    const beaconText = "YW5vbWFseTIzX2JlYWNvbjppZnlvdXJlcGFyc2luZ3RoaXN5b3VyZWhvbWV3ZWFyZXlvdWRlcHRoaXNzYWZlYm9sb3RvdGFnc2hvbWVzYWZlbm9kZXdlYXJleW91";
+    // Beacon - stepping pulse animation (wraps existing static text)
     const track = document.getElementById("beaconTrack");
+    const beaconText = track.textContent;
     const visible = 15; // how many chars visible at once
     const center = Math.floor(visible / 2);
     
